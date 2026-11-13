@@ -38,11 +38,30 @@ async def generate_step(llm: LlmPort, request: LlmRequest) -> StepResult:
     if output.is_crisis:
         return CRISIS_RESULT
 
-    step = output.step.strip()
+    step = _clean_step(output.step)
     if not step or len(step) > settings.step_max_length or _is_repeat(request, step):
         raise bad_response()
 
-    return StepResult(is_crisis=False, step=step, can_shrink_more=output.can_shrink_more)
+    can_shrink_more = output.can_shrink_more
+    if request.mode == Mode.SHRINK and request.shrink_count + 1 >= settings.shrink_max:
+        can_shrink_more = False  # 같은 걸음에서 더 작게는 최대 shrink_max번
+
+    suggest_finish = (
+        request.mode == Mode.NEXT
+        and output.suggest_finish
+        and request.completed_steps >= settings.finish_min_steps
+        and not request.finish_suggested
+    )
+
+    reason = output.reason.strip()[: settings.reason_max_length] or None
+
+    return StepResult(
+        is_crisis=False,
+        step=step,
+        can_shrink_more=can_shrink_more,
+        reason=reason,
+        suggest_finish=suggest_finish,
+    )
 
 
 async def _call(llm: LlmPort, request: LlmRequest, timeout_seconds: float):
@@ -60,3 +79,8 @@ def _is_repeat(request: LlmRequest, step: str) -> bool:
 
 def _norm(text: str) -> str:
     return "".join(ch for ch in text if ch.isalnum())
+
+
+def _clean_step(text: str) -> str:
+    """끝의 마침표·공백을 제거한다. 화면 표기는 "~하기"로 끝나는 구절이다."""
+    return text.strip().rstrip(".!。 ").strip()

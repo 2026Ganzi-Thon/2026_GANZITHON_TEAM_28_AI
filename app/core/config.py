@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     upstage_base_url: str = "https://api.upstage.ai/v1"
     llm_timeout_seconds: float = 10.0
     step_max_length: int = 60
+    shrink_max: int = 3  # Figma 확정 #4: 같은 걸음에서 더 작게 최대 3번
+    reason_max_length: int = 80
+    finish_min_steps: int = 3  # Figma 확정 #5: 3걸음 이상 내디딘 뒤 마무리 제안
 
 
 @lru_cache

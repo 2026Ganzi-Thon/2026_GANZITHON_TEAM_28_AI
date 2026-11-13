@@ -29,6 +29,7 @@ uvicorn app.main:app --reload --port 8000
 | `UPSTAGE_API_KEY`, `UPSTAGE_MODEL`, `UPSTAGE_BASE_URL` | `upstage`일 때 필요. 기본 모델 `solar-pro4`, 기본 주소 `https://api.upstage.ai/v1` |
 | `LLM_TIMEOUT_SECONDS` | LLM 응답 제한 시간. 초과하면 AI504 |
 | `STEP_MAX_LENGTH` | step 최대 글자 수 |
+| `SHRINK_MAX` | 같은 걸음에서 더 작게 최대 횟수 (기본 3, Figma 확정 #4) |
 
 ## 엔드포인트 (`/ai/v1`)
 
@@ -38,6 +39,14 @@ uvicorn app.main:app --reload --port 8000
 | POST | `/steps/shrink` | 더 작은 행동 |
 | POST | `/steps/next` | 다음 행동 |
 | GET | `/health` | 헬스체크 (내부 키 불필요) |
+
+## 요청·응답 요약 (Figma 확정 사항 반영)
+
+- 요청 공통: `goal`(1~50자), `energy`, `burden`(1~5), `recentTries`
+- `/steps/shrink`: `currentStep`, `shrinkHistory`(최대 3), `shrinkCount`(0~3). 3번째 더 작게에서는 `canShrinkMore=false`
+- `/steps/next`: `currentStep`, 선택값 `energyChange`(`SAME`/`UP`/`DOWN`), `completedSteps`, `finishSuggested`
+- 응답 `result`: `isCrisis`, `step`("~하기" 구절, 마침표 없음), `canShrinkMore`, `reason`(이유 문구, 없으면 null), `suggestFinish`(next에서 3걸음 이상·미제안일 때만 true)
+- `reason`·`suggestFinish`는 Figma 화면 기준으로 추가했고, AI 출력으로 할지는 팀 확인이 필요합니다.
 
 ## 구조
 
@@ -55,7 +64,7 @@ tests/
 
 ## 아직 결정되지 않은 것
 
-- 에너지·부담 값의 방향 (현재 가정: energy 1=낮음~5=높음, burden 1=적음~5=매우 큼)
+- 에너지·부담 값: Figma는 4택 라벨(방전됨/조금 남음/보통/괜찮음, 막막/꽤/약간/해볼 만)인데 서버는 1~5 숫자 가정. 백엔드 매핑 확인 필요
 - `step` 최대 길이 (현재 60자), `recentTries` 개수 (현재 최대 10)
 - 위기 키워드 목록은 시작용 초안이며, 테스트 세트와 검토로 보강 필요
 - health를 내부 키 없이 열어 둔 것 (명세의 "모든 요청 키 필수"와 다름)

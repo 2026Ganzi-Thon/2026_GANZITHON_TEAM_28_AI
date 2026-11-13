@@ -11,14 +11,15 @@ GOALS = ["과제 완료하기", "방 청소하기", "운동 시작하기"]
 
 async def shrink_ladder(llm, goal):
     first = await llm.generate_step(LlmRequest(Mode.FIRST, goal, 2, 4))
+    print(f"  reason: {first.reason}")
     hist, cur = [first.step], first.step
     print(f"\n[{goal}] first: {cur}")
-    for i in range(1, 6):
+    for i in range(1, 4):
         out = await llm.generate_step(
             LlmRequest(Mode.SHRINK, goal, 2, 4, current_step=cur, shrink_history=list(hist), shrink_count=i)
         )
         dup = "  <-- 반복" if out.step in hist else ""
-        print(f"  shrink{i}: {out.step} (len={len(out.step)}, canShrinkMore={out.can_shrink_more}){dup}")
+        print(f"  shrink{i}: {out.step} (len={len(out.step)}, canShrinkMore={out.can_shrink_more}){dup}\n    reason: {out.reason}")
         hist.append(out.step)
         cur = out.step
 

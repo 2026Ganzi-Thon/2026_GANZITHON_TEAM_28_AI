@@ -74,7 +74,7 @@ def test_shrink_success(client, headers):
 
 
 def test_shrink_count_limit_in_request(client, headers):
-    payload = {**BASE, "currentStep": "a", "shrinkHistory": ["a"], "shrinkCount": 6}
+    payload = {**BASE, "currentStep": "a", "shrinkHistory": ["a"], "shrinkCount": 4}
     res = client.post(SHRINK, json=payload, headers=headers)
     assert res.status_code == 400
 
@@ -104,3 +104,59 @@ def test_shrink_repeat_is_502(client, headers, monkeypatch):
         assert res.json()["code"] == "AI502"
     finally:
         app_llm.clear()
+
+
+def test_goal_over_50_chars_is_400(client, headers):
+    res = client.post(FIRST, json={**BASE, "goal": "가" * 51}, headers=headers)
+    assert res.status_code == 400
+    assert res.json()["code"] == "COMMON400_1"
+
+
+def test_first_has_reason_and_no_finish(client, headers):
+    result = client.post(FIRST, json=BASE, headers=headers).json()["result"]
+    assert result["reason"]
+    assert result["suggestFinish"] is False
+
+
+def test_shrink_third_time_disables_more(client, headers):
+    payload = {**BASE, "currentStep": "x", "shrinkHistory": ["a", "b"], "shrinkCount": 2}
+    result = client.post(SHRINK, json=payload, headers=headers).json()["result"]
+    assert result["canShrinkMore"] is False
+
+
+def test_shrink_first_time_allows_more(client, headers):
+    payload = {**BASE, "currentStep": "x", "shrinkHistory": [], "shrinkCount": 0}
+    result = client.post(SHRINK, json=payload, headers=headers).json()["result"]
+    assert result["canShrinkMore"] is True
+
+
+def test_next_suggest_finish_after_three_steps(client, headers):
+    body = {**BASE, "currentStep": "노트북 켜기", "completedSteps": 3, "energyChange": "UP"}
+    assert client.post(NEXT, json=body, headers=headers).json()["result"]["suggestFinish"] is True
+
+
+def test_next_no_finish_before_three_steps_or_if_already_suggested(client, headers):
+    early = {**BASE, "currentStep": "x", "completedSteps": 2}
+    assert client.post(NEXT, json=early, headers=headers).json()["result"]["suggestFinish"] is False
+    again = {**BASE, "currentStep": "x", "completedSteps": 5, "finishSuggested": True}
+    assert client.post(NEXT, json=again, headers=headers).json()["result"]["suggestFinish"] is False
+
+
+def test_next_rejects_unknown_energy_change(client, headers):
+    res = client.post(NEXT, json={**BASE, "currentStep": "x", "energyChange": "MAYBE"}, headers=headers)
+    assert res.status_code == 400
+
+
+def test_trailing_period_is_stripped(client, headers):
+    from app.api import steps as steps_api
+    from app.llm.base import LlmStepOutput
+
+    class Dotted:
+        async def generate_step(self, request):
+            return LlmStepOutput(step="노트북 켜기.", reason="이유")
+
+    client.app.dependency_overrides[steps_api.get_llm] = lambda: Dotted()
+    try:
+        assert client.post(FIRST, json=BASE, headers=headers).json()["result"]["step"] == "노트북 켜기"
+    finally:
+        client.app.dependency_overrides.clear()

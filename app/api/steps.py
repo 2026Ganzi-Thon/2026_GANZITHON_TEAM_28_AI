@@ -61,6 +61,9 @@ async def next_step(body: NextRequest, llm: LlmPort = Depends(get_llm)):
             burden=body.burden,
             current_step=body.current_step,
             recent_tries=body.recent_tries,
+            energy_change=body.energy_change,
+            completed_steps=body.completed_steps,
+            finish_suggested=body.finish_suggested,
         ),
     )
     return _to_response(result)

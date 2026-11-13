@@ -20,6 +20,13 @@ def build_user_prompt(req: LlmRequest) -> str:
         f"에너지(1 낮음~5 높음): {req.energy}",
         f"부담(1 적음~5 매우 큼): {req.burden}",
     ]
+    if req.energy_change:
+        label = {"SAME": "그대로예요", "UP": "조금 생겼어요", "DOWN": "더 지쳤어요"}.get(req.energy_change)
+        if label:
+            lines.append(f"방금 걸음 뒤 다시 고른 에너지: {label}")
+    if req.mode.value == "NEXT":
+        lines.append(f"지금까지 내디딘 걸음 수: {req.completed_steps}")
+        lines.append(f"이미 마무리 제안한 목표인가: {'예' if req.finish_suggested else '아니오'}")
     if req.current_step:
         lines.append(f"<current_step>{req.current_step}</current_step>")
     if req.shrink_history:

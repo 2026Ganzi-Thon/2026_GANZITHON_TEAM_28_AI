@@ -9,7 +9,6 @@ class Mode(str, Enum):
     FIRST = "FIRST"
     SHRINK = "SHRINK"
     NEXT = "NEXT"
-    FINISH = "FINISH"
 
 
 @dataclass
@@ -25,6 +24,7 @@ class LlmRequest:
     energy_change: str | None = None
     completed_steps: int = 0
     finish_suggested: bool = False
+    is_last_step: bool = False
 
 
 class LlmStepOutput(BaseModel):
@@ -34,7 +34,7 @@ class LlmStepOutput(BaseModel):
     step: str = ""
     can_shrink_more: bool = True
     reason: str = ""
-    suggest_finish: bool = False
+    is_last_step: bool = False
 
 
 class LlmTimeoutError(Exception):

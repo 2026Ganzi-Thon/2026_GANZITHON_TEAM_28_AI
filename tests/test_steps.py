@@ -74,7 +74,7 @@ def test_shrink_success(client, headers):
 
 
 def test_shrink_count_limit_in_request(client, headers):
-    payload = {**BASE, "currentStep": "a", "shrinkHistory": ["a"], "shrinkCount": 4}
+    payload = {**BASE, "currentStep": "a", "shrinkHistory": ["a"], "shrinkCount": 6}
     res = client.post(SHRINK, json=payload, headers=headers)
     assert res.status_code == 400
 
@@ -106,8 +106,8 @@ def test_shrink_repeat_is_502(client, headers, monkeypatch):
         app_llm.clear()
 
 
-def test_goal_over_50_chars_is_400(client, headers):
-    res = client.post(FIRST, json={**BASE, "goal": "가" * 51}, headers=headers)
+def test_goal_over_200_chars_is_400(client, headers):
+    res = client.post(FIRST, json={**BASE, "goal": "가" * 201}, headers=headers)
     assert res.status_code == 400
     assert res.json()["code"] == "COMMON400_1"
 
@@ -129,62 +129,37 @@ def test_shrink_first_time_allows_more(client, headers):
     assert result["canShrinkMore"] is True
 
 
-FINISH = "/ai/v1/steps/finish-check"
-FIN = {"goal": "방 청소하기", "currentStep": "바닥에 놓인 옷 1벌 줍기", "completedSteps": 3, "finishSuggested": False}
-
-
 def _override_llm(client, llm):
     from app.api import steps as steps_api
 
     client.app.dependency_overrides[steps_api.get_llm] = lambda: llm
 
 
-def test_finish_check_true_after_three_steps(client, headers):
-    res = client.post(FINISH, json=FIN, headers=headers)
-    assert res.status_code == 200
-    assert res.json()["result"] == {"suggestFinish": True}
+def test_next_is_last_step_after_three_steps(client, headers):
+    body = {**BASE, "currentStep": "노트북 켜기", "completedSteps": 3}
+    assert client.post(NEXT, json=body, headers=headers).json()["result"]["isLastStep"] is True
 
 
-def test_finish_check_gated_without_calling_llm(client, headers):
-    class Boom:
-        async def generate_step(self, request):
-            raise AssertionError("LLM must not be called")
-
-    _override_llm(client, Boom())
-    try:
-        early = client.post(FINISH, json={**FIN, "completedSteps": 2}, headers=headers)
-        again = client.post(FINISH, json={**FIN, "finishSuggested": True}, headers=headers)
-    finally:
-        client.app.dependency_overrides.clear()
-    assert early.json()["result"]["suggestFinish"] is False
-    assert again.json()["result"]["suggestFinish"] is False
+def test_next_not_last_before_three_steps_or_if_already_suggested(client, headers):
+    early = {**BASE, "currentStep": "x", "completedSteps": 2}
+    assert client.post(NEXT, json=early, headers=headers).json()["result"]["isLastStep"] is False
+    again = {**BASE, "currentStep": "x", "completedSteps": 5, "finishSuggested": True}
+    assert client.post(NEXT, json=again, headers=headers).json()["result"]["isLastStep"] is False
 
 
-def test_finish_check_degrades_to_false_on_llm_failure(client, headers):
-    from app.llm.base import LlmUnavailableError
-
-    class Down:
-        async def generate_step(self, request):
-            raise LlmUnavailableError("x")
-
-    _override_llm(client, Down())
-    try:
-        res = client.post(FINISH, json=FIN, headers=headers)
-    finally:
-        client.app.dependency_overrides.clear()
-    assert res.status_code == 200
-    assert res.json()["result"]["suggestFinish"] is False
+def test_first_is_never_last_step(client, headers):
+    assert client.post(FIRST, json=BASE, headers=headers).json()["result"]["isLastStep"] is False
 
 
-def test_finish_check_requires_key_and_fields(client, headers):
-    assert client.post(FINISH, json=FIN).status_code == 401
-    bad = {k: v for k, v in FIN.items() if k != "completedSteps"}
-    assert client.post(FINISH, json=bad, headers=headers).status_code == 400
+def test_shrink_keeps_last_step_flag(client, headers):
+    payload = {**BASE, "currentStep": "x", "shrinkHistory": [], "shrinkCount": 0, "isLastStep": True}
+    assert client.post(SHRINK, json=payload, headers=headers).json()["result"]["isLastStep"] is True
 
 
-def test_next_has_no_suggest_finish(client, headers):
-    body = {**BASE, "currentStep": "노트북 켜기", "energyChange": "UP"}
-    assert "suggestFinish" not in client.post(NEXT, json=body, headers=headers).json()["result"]
+def test_energy_and_burden_are_1_to_4(client, headers):
+    assert client.post(FIRST, json={**BASE, "energy": 5}, headers=headers).status_code == 400
+    assert client.post(FIRST, json={**BASE, "burden": 0}, headers=headers).status_code == 400
+    assert client.post(FIRST, json={**BASE, "energy": 4, "burden": 4}, headers=headers).status_code == 200
 
 
 def test_next_rejects_unknown_energy_change(client, headers):

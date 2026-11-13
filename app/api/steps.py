@@ -5,14 +5,12 @@ from app.core.security import verify_internal_key
 from app.llm.base import LlmPort, LlmRequest, Mode
 from app.llm.factory import get_llm
 from app.schemas.steps import (
-    FinishCheckRequest,
-    FinishCheckResult,
     FirstRequest,
     NextRequest,
     ShrinkRequest,
     StepResult,
 )
-from app.services.step_service import check_finish, generate_step
+from app.services.step_service import generate_step
 
 router = APIRouter(prefix="/steps", tags=["steps"], dependencies=[Depends(verify_internal_key)])
 
@@ -51,6 +49,7 @@ async def shrink_step(body: ShrinkRequest, llm: LlmPort = Depends(get_llm)):
             current_step=body.current_step,
             shrink_history=body.shrink_history,
             shrink_count=body.shrink_count,
+            is_last_step=body.is_last_step,
             recent_tries=body.recent_tries,
         ),
     )
@@ -69,24 +68,9 @@ async def next_step(body: NextRequest, llm: LlmPort = Depends(get_llm)):
             current_step=body.current_step,
             recent_tries=body.recent_tries,
             energy_change=body.energy_change,
-        ),
-    )
-    return _to_response(result)
-
-
-@router.post("/finish-check", summary="목표 마무리 제안 여부 판단 (해봤어요 직후)")
-async def finish_check(body: FinishCheckRequest, llm: LlmPort = Depends(get_llm)):
-    suggest = await check_finish(
-        llm,
-        LlmRequest(
-            mode=Mode.FINISH,
-            goal=body.goal,
-            energy=3,  # 사용하지 않는 값
-            burden=3,
-            current_step=body.current_step,
-            recent_tries=body.recent_tries,
             completed_steps=body.completed_steps,
             finish_suggested=body.finish_suggested,
         ),
     )
-    return api_response(result=FinishCheckResult(suggest_finish=suggest).model_dump(by_alias=True))
+    return _to_response(result)
+

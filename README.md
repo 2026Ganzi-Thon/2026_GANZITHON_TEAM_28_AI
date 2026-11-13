@@ -38,16 +38,14 @@ uvicorn app.main:app --reload --port 8000
 | POST | `/steps/first` | 목표 입력의 위기 확인 + 첫 행동 |
 | POST | `/steps/shrink` | 더 작은 행동 |
 | POST | `/steps/next` | 다음 행동 |
-| POST | `/steps/finish-check` | "해봤어요" 직후 목표 마무리 제안 여부 판단 |
 | GET | `/health` | 헬스체크 (내부 키 불필요) |
 
 ## 요청·응답 요약 (Figma 확정 사항 반영)
 
-- 요청 공통: `goal`(1~50자), `energy`, `burden`(1~5), `recentTries`
-- `/steps/shrink`: `currentStep`, `shrinkHistory`(최대 3), `shrinkCount`(0~3). 3번째 더 작게에서는 `canShrinkMore=false`
-- `/steps/next`: `currentStep`, 선택값 `energyChange`(`SAME`/`UP`/`DOWN`)
-- `/steps/finish-check`: `goal`, `currentStep`(방금 한 행동), `completedSteps`(방금 걸음 포함), `finishSuggested`. 응답 `{suggestFinish}`. 3걸음 미만이거나 이미 제안했으면 AI를 부르지 않고 false. AI 실패 시에도 false(흐름을 막지 않음)
-- 응답 `result`: `isCrisis`, `step`("~하기" 구절, 마침표 없음), `canShrinkMore`, `reason`(이유 문구, 없으면 null)
+- 요청 공통: `goal`(1~200자, 50자 제한은 백엔드가 검증), `energy`·`burden`(1~4), `recentTries`
+- `/steps/shrink`: `currentStep`, `shrinkHistory`, `shrinkCount`(0~5), 선택값 `isLastStep`(줄이는 대상이 마지막 걸음이면 true, 결과에 그대로 이어짐). `SHRINK_MAX`(기본 3)번째 더 작게에서는 `canShrinkMore=false`
+- `/steps/next`: `currentStep`, 선택값 `energyChange`(`SAME`/`UP`/`DOWN`), `completedSteps`(해본 걸음 수), `finishSuggested`(이미 마무리 제안한 목표인지)
+- 응답 `result`: `isCrisis`, `step`("~하기" 구절, 마침표 없음), `canShrinkMore`, `reason`(이유 문구, 없으면 null), `isLastStep`(next에서 3걸음 이상·미제안일 때 AI가 판단, first는 항상 false)
 - `reason`은 Figma 화면 기준으로 추가했고, AI 출력으로 할지는 팀 확인이 필요합니다.
 
 ## 구조
@@ -66,7 +64,7 @@ tests/
 
 ## 아직 결정되지 않은 것
 
-- 에너지·부담 값: Figma는 4택 라벨(방전됨/조금 남음/보통/괜찮음, 막막/꽤/약간/해볼 만)인데 서버는 1~5 숫자 가정. 백엔드 매핑 확인 필요
+- 에너지·부담 값 방향: 1~4이고, 에너지는 1=완전히 방전됨~4=꽤 괜찮아요, 부담은 1=너무 막막해요~4=해볼 만해요로 가정(Figma 라벨 순서). 백엔드·프론트 확인 필요
 - `step` 최대 길이 (현재 60자), `recentTries` 개수 (현재 최대 10)
 - 위기 키워드 목록은 시작용 초안이며, 테스트 세트와 검토로 보강 필요
 - health를 내부 키 없이 열어 둔 것 (명세의 "모든 요청 키 필수"와 다름)

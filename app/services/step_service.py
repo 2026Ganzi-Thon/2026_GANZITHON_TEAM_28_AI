@@ -46,13 +46,6 @@ async def generate_step(llm: LlmPort, request: LlmRequest) -> StepResult:
     if request.mode == Mode.SHRINK and request.shrink_count + 1 >= settings.shrink_max:
         can_shrink_more = False  # 같은 걸음에서 더 작게는 최대 shrink_max번
 
-    suggest_finish = (
-        request.mode == Mode.NEXT
-        and output.suggest_finish
-        and request.completed_steps >= settings.finish_min_steps
-        and not request.finish_suggested
-    )
-
     reason = output.reason.strip()[: settings.reason_max_length] or None
 
     return StepResult(
@@ -60,8 +53,19 @@ async def generate_step(llm: LlmPort, request: LlmRequest) -> StepResult:
         step=step,
         can_shrink_more=can_shrink_more,
         reason=reason,
-        suggest_finish=suggest_finish,
     )
+
+
+async def check_finish(llm: LlmPort, request: LlmRequest) -> bool:
+    """마무리 제안 여부. 보조 기능이라 실패해도 흐름을 막지 않고 false로 둔다."""
+    settings = get_settings()
+    if request.finish_suggested or request.completed_steps < settings.finish_min_steps:
+        return False  # 조건 미달이면 LLM을 부르지 않는다.
+    try:
+        output = await _call(llm, request, settings.llm_timeout_seconds)
+    except (asyncio.TimeoutError, LlmTimeoutError, LlmBadResponseError, LlmUnavailableError):
+        return False
+    return output.suggest_finish and not output.is_crisis
 
 
 async def _call(llm: LlmPort, request: LlmRequest, timeout_seconds: float):

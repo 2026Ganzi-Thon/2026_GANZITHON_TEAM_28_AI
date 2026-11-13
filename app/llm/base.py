@@ -9,6 +9,7 @@ class Mode(str, Enum):
     FIRST = "FIRST"
     SHRINK = "SHRINK"
     NEXT = "NEXT"
+    FINISH = "FINISH"
 
 
 @dataclass

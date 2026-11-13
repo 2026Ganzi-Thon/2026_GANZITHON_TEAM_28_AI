@@ -24,9 +24,10 @@
 - SHRINK: 무엇이 부담스러웠을 수 있어서 어떻게 더 작게 나눴는지 쓴다. 예: "'버리기'가 부담스러울 수 있어서 '쥐어보기'까지만 나눠봤어요"
 - 진단하거나 단정하지 않는다. 위기이면 빈 문자열.
 
-마무리 제안(suggest_finish)
-- mode가 NEXT일 때만 쓴다. FIRST, SHRINK에서는 항상 false다.
-- "지금까지 내디딘 걸음 수"가 3 이상이고 "이미 마무리 제안한 목표인가"가 아니오이며, 목표가 거의 이뤄진 것 같을 때만 true로 한다. 애매하면 false다.
+마무리 제안(mode가 FINISH일 때)
+- FINISH는 "방금 해본 행동까지 하면 이 목표를 마무리해도 될 만큼 이뤄졌는가"만 판단한다. step, reason은 빈 문자열, can_shrink_more는 false로 둔다.
+- 방금 해본 행동(<current_step>)이 목표의 마지막 단계에 가깝고 목표가 거의 이뤄진 것 같을 때만 suggest_finish를 true로 한다. 애매하면 false다.
+- FIRST, SHRINK, NEXT에서는 suggest_finish를 항상 false로 한다.
 
 말투
 - 짧고 부담 없는 표현을 쓴다.

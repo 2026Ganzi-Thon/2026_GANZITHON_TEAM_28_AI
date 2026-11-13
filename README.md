@@ -38,15 +38,17 @@ uvicorn app.main:app --reload --port 8000
 | POST | `/steps/first` | 목표 입력의 위기 확인 + 첫 행동 |
 | POST | `/steps/shrink` | 더 작은 행동 |
 | POST | `/steps/next` | 다음 행동 |
+| POST | `/steps/finish-check` | "해봤어요" 직후 목표 마무리 제안 여부 판단 |
 | GET | `/health` | 헬스체크 (내부 키 불필요) |
 
 ## 요청·응답 요약 (Figma 확정 사항 반영)
 
 - 요청 공통: `goal`(1~50자), `energy`, `burden`(1~5), `recentTries`
 - `/steps/shrink`: `currentStep`, `shrinkHistory`(최대 3), `shrinkCount`(0~3). 3번째 더 작게에서는 `canShrinkMore=false`
-- `/steps/next`: `currentStep`, 선택값 `energyChange`(`SAME`/`UP`/`DOWN`), `completedSteps`, `finishSuggested`
-- 응답 `result`: `isCrisis`, `step`("~하기" 구절, 마침표 없음), `canShrinkMore`, `reason`(이유 문구, 없으면 null), `suggestFinish`(next에서 3걸음 이상·미제안일 때만 true)
-- `reason`·`suggestFinish`는 Figma 화면 기준으로 추가했고, AI 출력으로 할지는 팀 확인이 필요합니다.
+- `/steps/next`: `currentStep`, 선택값 `energyChange`(`SAME`/`UP`/`DOWN`)
+- `/steps/finish-check`: `goal`, `currentStep`(방금 한 행동), `completedSteps`(방금 걸음 포함), `finishSuggested`. 응답 `{suggestFinish}`. 3걸음 미만이거나 이미 제안했으면 AI를 부르지 않고 false. AI 실패 시에도 false(흐름을 막지 않음)
+- 응답 `result`: `isCrisis`, `step`("~하기" 구절, 마침표 없음), `canShrinkMore`, `reason`(이유 문구, 없으면 null)
+- `reason`은 Figma 화면 기준으로 추가했고, AI 출력으로 할지는 팀 확인이 필요합니다.
 
 ## 구조
 

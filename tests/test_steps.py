@@ -112,10 +112,9 @@ def test_goal_over_50_chars_is_400(client, headers):
     assert res.json()["code"] == "COMMON400_1"
 
 
-def test_first_has_reason_and_no_finish(client, headers):
+def test_first_has_reason(client, headers):
     result = client.post(FIRST, json=BASE, headers=headers).json()["result"]
     assert result["reason"]
-    assert result["suggestFinish"] is False
 
 
 def test_shrink_third_time_disables_more(client, headers):
@@ -130,16 +129,62 @@ def test_shrink_first_time_allows_more(client, headers):
     assert result["canShrinkMore"] is True
 
 
-def test_next_suggest_finish_after_three_steps(client, headers):
-    body = {**BASE, "currentStep": "노트북 켜기", "completedSteps": 3, "energyChange": "UP"}
-    assert client.post(NEXT, json=body, headers=headers).json()["result"]["suggestFinish"] is True
+FINISH = "/ai/v1/steps/finish-check"
+FIN = {"goal": "방 청소하기", "currentStep": "바닥에 놓인 옷 1벌 줍기", "completedSteps": 3, "finishSuggested": False}
 
 
-def test_next_no_finish_before_three_steps_or_if_already_suggested(client, headers):
-    early = {**BASE, "currentStep": "x", "completedSteps": 2}
-    assert client.post(NEXT, json=early, headers=headers).json()["result"]["suggestFinish"] is False
-    again = {**BASE, "currentStep": "x", "completedSteps": 5, "finishSuggested": True}
-    assert client.post(NEXT, json=again, headers=headers).json()["result"]["suggestFinish"] is False
+def _override_llm(client, llm):
+    from app.api import steps as steps_api
+
+    client.app.dependency_overrides[steps_api.get_llm] = lambda: llm
+
+
+def test_finish_check_true_after_three_steps(client, headers):
+    res = client.post(FINISH, json=FIN, headers=headers)
+    assert res.status_code == 200
+    assert res.json()["result"] == {"suggestFinish": True}
+
+
+def test_finish_check_gated_without_calling_llm(client, headers):
+    class Boom:
+        async def generate_step(self, request):
+            raise AssertionError("LLM must not be called")
+
+    _override_llm(client, Boom())
+    try:
+        early = client.post(FINISH, json={**FIN, "completedSteps": 2}, headers=headers)
+        again = client.post(FINISH, json={**FIN, "finishSuggested": True}, headers=headers)
+    finally:
+        client.app.dependency_overrides.clear()
+    assert early.json()["result"]["suggestFinish"] is False
+    assert again.json()["result"]["suggestFinish"] is False
+
+
+def test_finish_check_degrades_to_false_on_llm_failure(client, headers):
+    from app.llm.base import LlmUnavailableError
+
+    class Down:
+        async def generate_step(self, request):
+            raise LlmUnavailableError("x")
+
+    _override_llm(client, Down())
+    try:
+        res = client.post(FINISH, json=FIN, headers=headers)
+    finally:
+        client.app.dependency_overrides.clear()
+    assert res.status_code == 200
+    assert res.json()["result"]["suggestFinish"] is False
+
+
+def test_finish_check_requires_key_and_fields(client, headers):
+    assert client.post(FINISH, json=FIN).status_code == 401
+    bad = {k: v for k, v in FIN.items() if k != "completedSteps"}
+    assert client.post(FINISH, json=bad, headers=headers).status_code == 400
+
+
+def test_next_has_no_suggest_finish(client, headers):
+    body = {**BASE, "currentStep": "노트북 켜기", "energyChange": "UP"}
+    assert "suggestFinish" not in client.post(NEXT, json=body, headers=headers).json()["result"]
 
 
 def test_next_rejects_unknown_energy_change(client, headers):

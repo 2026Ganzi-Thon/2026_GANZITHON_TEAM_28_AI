@@ -22,12 +22,9 @@ class MockAdapter:
                 reason="더 작게 나눠봤어요",
             )
         if request.mode == Mode.NEXT:
-            return LlmStepOutput(
-                step=_NEXT,
-                can_shrink_more=True,
-                reason="지금 에너지에 맞춰 골랐어요",
-                suggest_finish=request.completed_steps >= 3 and not request.finish_suggested,
-            )
+            return LlmStepOutput(step=_NEXT, can_shrink_more=True, reason="지금 에너지에 맞춰 골랐어요")
+        if request.mode == Mode.FINISH:
+            return LlmStepOutput(suggest_finish=True)
         return LlmStepOutput(
             step=_LADDER[0], can_shrink_more=True, reason="지금 에너지에 맞춰 가장 작은 걸음을 골랐어요"
         )

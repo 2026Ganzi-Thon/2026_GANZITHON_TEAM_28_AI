@@ -21,6 +21,10 @@ class LlmRequest:
     shrink_history: list[str] = field(default_factory=list)
     shrink_count: int = 0
     recent_tries: list[str] = field(default_factory=list)
+    energy_change: str | None = None
+    completed_steps: int = 0
+    finish_suggested: bool = False
+    is_last_step: bool = False
 
 
 class LlmStepOutput(BaseModel):
@@ -29,6 +33,8 @@ class LlmStepOutput(BaseModel):
     is_crisis: bool = False
     step: str = ""
     can_shrink_more: bool = True
+    reason: str = ""
+    is_last_step: bool = False
 
 
 class LlmTimeoutError(Exception):

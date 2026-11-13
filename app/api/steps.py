@@ -4,7 +4,12 @@ from app.core.response import api_response
 from app.core.security import verify_internal_key
 from app.llm.base import LlmPort, LlmRequest, Mode
 from app.llm.factory import get_llm
-from app.schemas.steps import FirstRequest, NextRequest, ShrinkRequest, StepResult
+from app.schemas.steps import (
+    FirstRequest,
+    NextRequest,
+    ShrinkRequest,
+    StepResult,
+)
 from app.services.step_service import generate_step
 
 router = APIRouter(prefix="/steps", tags=["steps"], dependencies=[Depends(verify_internal_key)])
@@ -44,6 +49,7 @@ async def shrink_step(body: ShrinkRequest, llm: LlmPort = Depends(get_llm)):
             current_step=body.current_step,
             shrink_history=body.shrink_history,
             shrink_count=body.shrink_count,
+            is_last_step=body.is_last_step,
             recent_tries=body.recent_tries,
         ),
     )
@@ -61,6 +67,10 @@ async def next_step(body: NextRequest, llm: LlmPort = Depends(get_llm)):
             burden=body.burden,
             current_step=body.current_step,
             recent_tries=body.recent_tries,
+            energy_change=body.energy_change,
+            completed_steps=body.completed_steps,
+            finish_suggested=body.finish_suggested,
         ),
     )
     return _to_response(result)
+

@@ -3,6 +3,10 @@ from pathlib import Path
 
 from app.llm.base import LlmRequest
 
+# 순서는 Figma 라벨 기준(백엔드 확인 필요). 숫자 대신 라벨을 넘겨 모델이 방향을 헷갈리지 않게 한다.
+_ENERGY = {1: "완전히 방전됨", 2: "조금 남아 있음", 3: "보통이에요", 4: "꽤 괜찮아요"}
+_BURDEN = {1: "너무 막막해요", 2: "꽤 부담돼요", 3: "약간 부담돼요", 4: "해볼 만해요"}
+
 _PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
 
@@ -16,10 +20,16 @@ def build_user_prompt(req: LlmRequest) -> str:
     lines = [
         f"mode: {req.mode.value}",
         f"<goal>{req.goal}</goal>",
-        # 방향은 미결정: 현재 가정은 에너지 1=매우 낮음~5=높음, 부담 1=적음~5=매우 큼
-        f"에너지(1 낮음~5 높음): {req.energy}",
-        f"부담(1 적음~5 매우 큼): {req.burden}",
+        f"에너지: {_ENERGY.get(req.energy, req.energy)}",
+        f"부담: {_BURDEN.get(req.burden, req.burden)}",
     ]
+    if req.energy_change:
+        label = {"SAME": "그대로예요", "UP": "조금 생겼어요", "DOWN": "더 지쳤어요"}.get(req.energy_change)
+        if label:
+            lines.append(f"방금 걸음 뒤 다시 고른 에너지: {label}")
+    if req.mode.value == "NEXT":
+        lines.append(f"지금까지 해본 걸음 수: {req.completed_steps}")
+        lines.append(f"이미 마무리 제안한 목표인가: {'예' if req.finish_suggested else '아니오'}")
     if req.current_step:
         lines.append(f"<current_step>{req.current_step}</current_step>")
     if req.shrink_history:

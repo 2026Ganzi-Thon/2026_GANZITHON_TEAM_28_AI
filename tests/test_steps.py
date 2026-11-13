@@ -83,3 +83,24 @@ def test_next_success(client, headers):
     res = client.post(NEXT, json={**BASE, "currentStep": "노트북 켜기"}, headers=headers)
     assert res.status_code == 200
     assert res.json()["result"]["step"]
+
+
+def test_shrink_repeat_is_502(client, headers, monkeypatch):
+    from app.llm import factory
+    from app.llm.base import LlmStepOutput
+
+    class Repeater:
+        async def generate_step(self, request):
+            return LlmStepOutput(is_crisis=False, step="과제 자료 확인하기!", can_shrink_more=True)
+
+    app_llm = client.app.dependency_overrides
+    from app.api import steps as steps_api
+
+    app_llm[steps_api.get_llm] = lambda: Repeater()
+    try:
+        payload = {**BASE, "currentStep": "x", "shrinkHistory": ["과제 자료 확인하기"], "shrinkCount": 1}
+        res = client.post(SHRINK, json=payload, headers=headers)
+        assert res.status_code == 502
+        assert res.json()["code"] == "AI502"
+    finally:
+        app_llm.clear()

@@ -23,11 +23,11 @@ async def generate_step(llm: LlmPort, request: LlmRequest) -> StepResult:
     if request.mode == Mode.FIRST and has_crisis_keyword(request.goal):
         return CRISIS_RESULT
 
-    # 2차: LLM 호출 (행동 생성 + 위기 판정)
+    # 2차: LLM 호출 (행동 생성 + 위기 판정). SHRINK에서 이미 나온 행동이 반복되면 한 번 다시 시도한다.
     try:
-        output = await asyncio.wait_for(
-            llm.generate_step(request), timeout=settings.llm_timeout_seconds
-        )
+        output = await _call(llm, request, settings.llm_timeout_seconds)
+        if _is_repeat(request, output.step):
+            output = await _call(llm, request, settings.llm_timeout_seconds)
     except (asyncio.TimeoutError, LlmTimeoutError) as exc:
         raise timeout() from exc
     except LlmBadResponseError as exc:
@@ -39,7 +39,24 @@ async def generate_step(llm: LlmPort, request: LlmRequest) -> StepResult:
         return CRISIS_RESULT
 
     step = output.step.strip()
-    if not step or len(step) > settings.step_max_length:
+    if not step or len(step) > settings.step_max_length or _is_repeat(request, step):
         raise bad_response()
 
     return StepResult(is_crisis=False, step=step, can_shrink_more=output.can_shrink_more)
+
+
+async def _call(llm: LlmPort, request: LlmRequest, timeout_seconds: float):
+    return await asyncio.wait_for(llm.generate_step(request), timeout=timeout_seconds)
+
+
+def _is_repeat(request: LlmRequest, step: str) -> bool:
+    if request.mode != Mode.SHRINK:
+        return False
+    seen = {_norm(x) for x in request.shrink_history}
+    if request.current_step:
+        seen.add(_norm(request.current_step))
+    return _norm(step) in seen
+
+
+def _norm(text: str) -> str:
+    return "".join(ch for ch in text if ch.isalnum())

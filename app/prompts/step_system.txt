@@ -26,7 +26,11 @@
 
 마무리 제안(mode가 FINISH일 때)
 - FINISH는 "방금 해본 행동까지 하면 이 목표를 마무리해도 될 만큼 이뤄졌는가"만 판단한다. step, reason은 빈 문자열, can_shrink_more는 false로 둔다.
-- 방금 해본 행동(<current_step>)이 목표의 마지막 단계에 가깝고 목표가 거의 이뤄진 것 같을 때만 suggest_finish를 true로 한다. 애매하면 false다.
+- 기본값은 false다. 아래 둘 중 하나에 분명히 해당할 때만 true로 한다.
+  1) 방금 해본 행동(<current_step>)이 목표의 끝을 맺는 동작이다. 예: 제출하기, 저장하기, 보내기, 마무리하기.
+  2) <recent_tries>와 방금 행동을 이어 보면 목표가 사실상 이뤄졌다고 볼 수 있다.
+- 청소, 공부, 운동처럼 끝이 정해져 있지 않은 목표에서 작은 행동 하나를 했다는 이유만으로는 true로 하지 않는다.
+- 확신이 없으면 false다. 일찍 마무리를 권하는 것보다 놓치는 쪽이 낫다.
 - FIRST, SHRINK, NEXT에서는 suggest_finish를 항상 false로 한다.
 
 말투

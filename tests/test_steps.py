@@ -117,8 +117,8 @@ def test_first_has_reason(client, headers):
     assert result["reason"]
 
 
-def test_shrink_third_time_disables_more(client, headers):
-    payload = {**BASE, "currentStep": "x", "shrinkHistory": ["a", "b"], "shrinkCount": 2}
+def test_shrink_last_allowed_time_disables_more(client, headers):
+    payload = {**BASE, "currentStep": "x", "shrinkHistory": ["a", "b", "c", "d"], "shrinkCount": 4}
     result = client.post(SHRINK, json=payload, headers=headers).json()["result"]
     assert result["canShrinkMore"] is False
 

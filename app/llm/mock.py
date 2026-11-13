@@ -18,7 +18,7 @@ class MockAdapter:
             level = min(request.shrink_count + 1, len(_LADDER) - 1)
             return LlmStepOutput(
                 step=_LADDER[level],
-                can_shrink_more=request.shrink_count + 1 < 3,
+                can_shrink_more=request.shrink_count + 1 < 5,
                 reason="더 작게 나눠봤어요",
             )
         if request.mode == Mode.NEXT:

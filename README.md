@@ -29,7 +29,7 @@ uvicorn app.main:app --reload --port 8000
 | `UPSTAGE_API_KEY`, `UPSTAGE_MODEL`, `UPSTAGE_BASE_URL` | `upstage`일 때 필요. 기본 모델 `solar-pro4`, 기본 주소 `https://api.upstage.ai/v1` |
 | `LLM_TIMEOUT_SECONDS` | LLM 응답 제한 시간(기본 6초). 초과하면 AI504 |
 | `STEP_MAX_LENGTH` | step 최대 글자 수 |
-| `SHRINK_MAX` | 같은 걸음에서 더 작게 최대 횟수 (기본 3, Figma 확정 #4) |
+| `SHRINK_MAX` | 같은 걸음에서 더 작게 최대 횟수 (기본 5, API 명세서 기준. Figma #4 는 3번이라 팀 확인 필요) |
 
 ## 엔드포인트 (`/ai/v1`)
 
@@ -43,7 +43,7 @@ uvicorn app.main:app --reload --port 8000
 ## 요청·응답 요약 (Figma 확정 사항 반영)
 
 - 요청 공통: `goal`(1~200자, 50자 제한은 백엔드가 검증), `energy`·`burden`(1~4), `recentTries`
-- `/steps/shrink`: `currentStep`, `shrinkHistory`, `shrinkCount`(0~5), 선택값 `isLastStep`(줄이는 대상이 마지막 걸음이면 true, 결과에 그대로 이어짐). `SHRINK_MAX`(기본 3)번째 더 작게에서는 `canShrinkMore=false`
+- `/steps/shrink`: `currentStep`, `shrinkHistory`, `shrinkCount`(0~5), 선택값 `isLastStep`(줄이는 대상이 마지막 걸음이면 true, 결과에 그대로 이어짐). `SHRINK_MAX`(기본 5)번째 더 작게에서는 `canShrinkMore=false`
 - `/steps/next`: `currentStep`, 선택값 `energyChange`(`SAME`/`UP`/`DOWN`), `completedSteps`(해본 걸음 수), `finishSuggested`(이미 마무리 제안한 목표인지)
 - 응답 `result`: `isCrisis`, `step`("~하기" 구절, 마침표 없음), `canShrinkMore`, `reason`(이유 문구, 없으면 null), `isLastStep`(next에서 3걸음 이상·미제안일 때 AI가 판단, first는 항상 false)
 - `reason`은 Figma 화면 기준으로 추가했고, AI 출력으로 할지는 팀 확인이 필요합니다.

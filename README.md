@@ -27,7 +27,7 @@ uvicorn app.main:app --reload --port 8000
 | `LLM_PROVIDER` | `mock`(키 없이 가짜 응답) / `gemini` / `upstage` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | `gemini`일 때 필요. 모델명은 현재 제공되는 값으로 확인 |
 | `UPSTAGE_API_KEY`, `UPSTAGE_MODEL`, `UPSTAGE_BASE_URL` | `upstage`일 때 필요. 기본 모델 `solar-pro4`, 기본 주소 `https://api.upstage.ai/v1` |
-| `LLM_TIMEOUT_SECONDS` | LLM 응답 제한 시간. 초과하면 AI504 |
+| `LLM_TIMEOUT_SECONDS` | LLM 응답 제한 시간(기본 6초). 초과하면 AI504 |
 | `STEP_MAX_LENGTH` | step 최대 글자 수 |
 | `SHRINK_MAX` | 같은 걸음에서 더 작게 최대 횟수 (기본 3, Figma 확정 #4) |
 

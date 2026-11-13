@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     upstage_api_key: str = ""
     upstage_model: str = "solar-pro4"
     upstage_base_url: str = "https://api.upstage.ai/v1"
-    llm_timeout_seconds: float = 10.0
+    llm_timeout_seconds: float = 6.0  # 백엔드 읽기 7초 + 1회 재시도가 프론트 15초 안에 끝나도록
     step_max_length: int = 60
     shrink_max: int = 3  # Figma 확정 #4: 같은 걸음에서 더 작게 최대 3번
     reason_max_length: int = 80

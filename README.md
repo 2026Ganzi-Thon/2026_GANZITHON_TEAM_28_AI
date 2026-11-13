@@ -24,8 +24,9 @@ uvicorn app.main:app --reload --port 8000
 | 이름 | 설명 |
 | --- | --- |
 | `AI_INTERNAL_KEY` | 백엔드가 `X-Internal-Key`로 보내는 값. 비어 있으면 모든 요청 401 |
-| `LLM_PROVIDER` | `mock`(키 없이 가짜 응답) / `gemini` |
+| `LLM_PROVIDER` | `mock`(키 없이 가짜 응답) / `gemini` / `upstage` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | `gemini`일 때 필요. 모델명은 현재 제공되는 값으로 확인 |
+| `UPSTAGE_API_KEY`, `UPSTAGE_MODEL`, `UPSTAGE_BASE_URL` | `upstage`일 때 필요. 기본 모델 `solar-pro4`, 기본 주소 `https://api.upstage.ai/v1` |
 | `LLM_TIMEOUT_SECONDS` | LLM 응답 제한 시간. 초과하면 AI504 |
 | `STEP_MAX_LENGTH` | step 최대 글자 수 |
 
@@ -47,7 +48,7 @@ app/
   services/   기능별 로직 (위기 검사 -> LLM -> 검증)
   safety/     위기 키워드 검사 (공통 모듈)
   prompts/    프롬프트 텍스트 파일
-  llm/        LLM 어댑터 (mock, gemini)
+  llm/        LLM 어댑터 (mock, gemini, upstage)
   core/       설정, 인증, 에러 핸들러, request-id 미들웨어, 응답 형식
 tests/
 ```

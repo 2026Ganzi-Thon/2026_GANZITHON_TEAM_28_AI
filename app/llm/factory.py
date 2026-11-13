@@ -14,4 +14,15 @@ def get_llm() -> LlmPort:
         from app.llm.gemini import GeminiAdapter
 
         return GeminiAdapter(settings.gemini_api_key, settings.gemini_model)
+    if settings.llm_provider == "upstage":
+        if not settings.upstage_api_key:
+            raise RuntimeError("LLM_PROVIDER=upstage 이면 UPSTAGE_API_KEY가 필요합니다.")
+        from app.llm.upstage import UpstageAdapter
+
+        return UpstageAdapter(
+            settings.upstage_api_key,
+            settings.upstage_model,
+            settings.upstage_base_url,
+            settings.llm_timeout_seconds,
+        )
     return MockAdapter()

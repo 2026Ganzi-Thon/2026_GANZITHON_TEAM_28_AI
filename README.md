@@ -68,3 +68,14 @@ tests/
 - `step` 최대 길이 (현재 60자), `recentTries` 개수 (현재 최대 10)
 - 위기 키워드 목록은 시작용 초안이며, 테스트 세트와 검토로 보강 필요
 - health를 내부 키 없이 열어 둔 것 (명세의 "모든 요청 키 필수"와 다름)
+
+## Docker로 실행
+
+```bash
+docker build -t team28-ai .
+docker run -d -p 8000:8000 --env-file .env team28-ai
+```
+
+- 포트는 8000, 헬스체크는 `GET /ai/v1/health` 입니다. 이미지에는 `.env`가 들어가지 않으므로 실행할 때 환경변수로 넣습니다.
+- 워커 1개 기준 메모리는 대기 약 40MB, LLM 호출 동시 12건 후 약 56MB 입니다.
+- 필수 환경변수: `AI_INTERNAL_KEY`, `LLM_PROVIDER=upstage`, `UPSTAGE_API_KEY`

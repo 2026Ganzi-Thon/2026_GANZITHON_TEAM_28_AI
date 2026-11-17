@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     upstage_api_key: str = ""
     upstage_model: str = "solar-pro4"
     upstage_base_url: str = "https://api.upstage.ai/v1"
-    llm_timeout_seconds: float = 6.0  # 백엔드 읽기 7초 + 1회 재시도가 프론트 15초 안에 끝나도록
+    llm_timeout_seconds: float = 6.0  # 백엔드 읽기 제한(7초)보다 짧게. 시간 초과는 백엔드가 재시도하지 않는다
     step_max_length: int = 60
     shrink_max: int = 5  # API 명세서(11/12 확정): 같은 걸음에서 더 작게 최대 5번. Figma #4 는 3번이라 팀 확인 중
     reason_max_length: int = 80
